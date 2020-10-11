@@ -1,0 +1,23 @@
+<html>
+    <head>
+        <title><%= htmlWebpackPlugin.options.title %></title>
+        <%= htmlWebpackPlugin.tags.headTags %>
+    </head>
+    <body>
+        <%= htmlWebpackPlugin.tags.bodyTags %>
+        <div class="project-form shadow-box">
+            <h2>Map Settings:</h2>
+            <label for="seed">Seed:</label>
+            <input id="seed" name="seed" type="text"/>
+            <input id="numSeed" name="numSeed" type="hidden"/>
+            <select id="version" name="version">
+                <option value="1.6.4">Latest Known (1.6.4 Release)</option>
+            </select>
+        </div>
+        <div id="mc_map"></div>
+        <div class="modal shadow-box">No project seed specified.</div>
+        <div class="footer shadow-box">
+            <p>MC Maps v<%= htmlWebpackPlugin.options.version %> | &copy; 2020 - Lane Shaw</p>
+        </div>
+    </body>
+</html>

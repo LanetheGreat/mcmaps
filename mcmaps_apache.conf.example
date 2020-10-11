@@ -1,0 +1,79 @@
+<VirtualHost *:80>
+    # The ServerName directive sets the request scheme, hostname and port that
+    # the server uses to identify itself. This is used when creating
+    # redirection URLs. In the context of virtual hosts, the ServerName
+    # specifies what hostname must appear in the request's Host: header to
+    # match this virtual host. For the default virtual host (this file) this
+    # value is not decisive as it is used as a last resort host regardless.
+    # However, you must set it for any further virtual host explicitly.
+
+    Define docroot /var/www/html/mc
+    Define domain mcmaps.io
+
+    ServerName ${domain}
+    ServerAdmin lshaw.tech@gmail.com
+    DocumentRoot ${docroot}/assets/dist
+
+    # Dispatch API requests to their relative script files.
+    WSGIScriptAlias /api/ ${docroot}/mcmaps/wsgi/
+    WSGIProcessGroup MC_ROOT
+    WSGIDaemonProcess MC_ROOT user=mc group=mc inactivity-timeout=10 home=${docroot}
+
+    <Directory "${docroot}/mcmaps/wsgi">
+        Options ExecCGI MultiViews
+        SetHandler wsgi-script
+        MultiviewsMatch Handlers
+    </Directory>
+
+    <Directory /usr/share/apache2/icons>
+        <IfVersion < 2.4>
+            Order allow,deny
+            Allow from all
+        </IfVersion>
+        <IfVersion >= 2.4>
+            Require all granted
+        </IfVersion>
+        AllowOverride All
+    </Directory>
+
+    <Directory "${docroot}">
+        DirectoryIndex index.html
+        Options None
+        AllowOverride All
+        <IfVersion < 2.4>
+            Order allow,deny
+            Allow from all
+        </IfVersion>
+        <IfVersion >= 2.4>
+            Require all granted
+        </IfVersion>
+        <Files "mcmaps_apache.conf">
+            <IfVersion < 2.4>
+                Order deny,allow
+                Deny from all
+            </IfVersion>
+            <IfVersion >= 2.4>
+                Require all denied
+            </IfVersion>
+        </Files>
+        <Files "index.dev.html">
+            <IfVersion < 2.4>
+                Order deny,allow
+                Deny from all
+            </IfVersion>
+            <IfVersion >= 2.4>
+                Require all denied
+            </IfVersion>
+        </Files>
+    </Directory>
+
+    # Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+    # error, crit, alert, emerg.
+    # It is also possible to configure the loglevel for particular
+    # modules, e.g.
+    LogLevel info ssl:warn
+
+    ErrorLog ${APACHE_LOG_DIR}/${domain}.error.log
+    CustomLog ${APACHE_LOG_DIR}/${domain}.log combined
+
+</VirtualHost>
