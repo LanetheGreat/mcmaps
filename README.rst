@@ -10,16 +10,17 @@ Installation
 ------------
 
 * Clone the repo via git ``https://github.com/LanetheGreat/mcmaps.git``.
-* Install the required python packages using pipenv for the Python portion of the project via ``pipenv install``.
-* Install the required node packages for the JavaScript portion of the project via ``npm install``.
-* Transpile the main site Javascript via the command ``npm run build-app``.
+* Install the required python packages using pipenv for the Python portion of the project via "``pipenv install``" or "``python -m pipenv install``".
+* Install the required node packages for the JavaScript portion of the project via "``npm install``".
+* Transpile the main site Javascript and library via the commands "``npm run build-app``" and "``npm run build-lib``".
+* Use the provided Apache .conf example file (``mcmaps_apache.conf.example``) to configure Apache as your WSGI server, replacing the defined variables and server admin email.
 
- - Optionally transpile the client-side library via ``npm run build-lib``.
-
-* Use the provided Apache .conf example file (``mcmaps_apache.conf.example``) to configure Apache as your WSGI server, eplacing the defined variables and server admin email.
-
+ - *Note: The provided configuration by default expects a non-privileged user called "mc" to exist on your system.*
  - Replace the defined "docroot" value with the location of the cloned project folder.
  - Replace the defined "domain" value with the URL used by your DNS provider or hosting service.
+ - Replace the defined "site_user" value with the user id or name that the Python scripts will be run as.
+ - Replace the defined "site_group" value with the group id or name that the Python scripts will be run as.
+ - Replace the defined "python_venv" value with the path to your site's virtual environment folder, otherwise if you're not using one remove "``python-home=${python_venv}``" from line 23 (WSGIDaemonProcess config line).
  - Replace the "ServerAdmin" email with your admin email.
 
 Development
