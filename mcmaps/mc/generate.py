@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-''' Classes and Structures used for map generation '''
+''' Classes used for map generation '''
 
 from math import sqrt
+
 from mcmaps.java.random import Random
-from mcmaps.mc.noise import NoiseGeneratorOctaves
+from mcmaps.mc.noise import SimplexNoiseGenerator
 
-__all__ = ['ChunkProvider']
+__all__ = ['ChunkGenerator']
 
 
-class ChunkProvider:
-    __slots__ = ('rand', 'noiseGen', 'noiseField')
+class ChunkGenerator:
+    __slots__ = ('rand', 'noise_generators')
 
     # Gaussian kernel matrix for smoothing block heights between biome boundaries.
-    parabolicField = [
+    parabolic_values = [
         [
             10.0 / sqrt(x * x + z * z + 0.2)
             for x in range(-2, 3)
@@ -35,8 +36,7 @@ class ChunkProvider:
 
     def __init__(self, seed):
         self.rand = Random(seed)
-        self.noiseGen = [
-            NoiseGeneratorOctaves(self.rand, octaves)
-            for octaves in (16, 16, 8, 4, 10, 16)
+        self.noise_generators = [
+            SimplexNoiseGenerator(self.rand, level)
+            for level in (16, 16, 8, 4, 10, 16)
         ]
-        self.noiseField = []
