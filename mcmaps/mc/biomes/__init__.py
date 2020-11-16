@@ -50,62 +50,63 @@ _ISLAND_LAYERS = (
 )
 
 
-def initialize_all_biomes(world_seed, world_type, debug=None):
+def initialize_all_biomes(world_seed, world_type, _debug=None):
     global _BIOME_LAYERS
+    from copy import copy
 
     base_zoom = 6 if world_type is WORLD_TYPE.LARGE_BIOME else 4
 
     # Initialize our island and ocean biome generators.
     island_layer = None
     for layer, seed in _ISLAND_LAYERS:
-        island_layer = layer(seed, child=island_layer, debug=debug)
+        island_layer = layer(seed, child=island_layer, _debug=_debug)
 
     # Initialize our river and landmass biome generators.
     river_init_layer = ZoomLayer.zoom(
         1000,
-        child=RiverInitLayer(100, island_layer, debug=debug),
+        child=RiverInitLayer(100, island_layer, _debug=_debug),
         zoom_count=base_zoom + 2,
-        debug=debug,
+        _debug=_debug,
     )
     river_layer = SmoothLayer(
         1000,
         child=RiverLayer(
             1,
             child=river_init_layer,
-            debug=debug,
+            _debug=_debug,
         ),
-        debug=debug,
+        _debug=_debug,
     )
     land_layer = HillsLayer(
         1000,
         child=ZoomLayer.zoom(
             1000,
-            child=BiomeInitLayer(200, child=island_layer, world_type=world_type, debug=debug),
+            child=BiomeInitLayer(200, child=island_layer, world_type=world_type, _debug=_debug),
             zoom_count=2,
-            debug=debug,
+            _debug=_debug,
         ),
-        debug=debug,
+        _debug=_debug,
     )
 
     # Zoom out our landmass biomes.
     for zoom in range(base_zoom):
-        land_layer = ZoomLayer(1000 + zoom, child=land_layer, debug=debug)
+        land_layer = ZoomLayer(1000 + zoom, child=land_layer, _debug=_debug)
 
         if zoom == 0:
-            land_layer = AddIslandLayer(3, child=land_layer, debug=debug)
+            land_layer = AddIslandLayer(3, child=land_layer, _debug=_debug)
 
         if zoom == 1:
-            land_layer = ShoreLayer(1000, child=land_layer, debug=debug)
-            land_layer = SwampRiverLayer(1000, child=land_layer, debug=debug)
+            land_layer = ShoreLayer(1000, child=land_layer, _debug=_debug)
+            land_layer = SwampRiverLayer(1000, child=land_layer, _debug=_debug)
 
     # Merge the river and landmass generators and create a biome noise layer.
     block_biome_layer = RiverMixerLayer(
         100,
-        child=SmoothLayer(1000, land_layer, debug=debug),
+        child=SmoothLayer(1000, land_layer, _debug=_debug),
         child_river=river_layer,
-        debug=debug,
+        _debug=_debug,
     )
-    biome_noise_layer = VoronoiZoomLayer(10, child=block_biome_layer, debug=debug)
+    biome_noise_layer = VoronoiZoomLayer(10, child=copy(block_biome_layer), _debug=_debug)
 
     # Calculate the layers seeds. (Recursively calculates all the wrapped child layers' seeds)
     block_biome_layer.init_world_seed(world_seed)

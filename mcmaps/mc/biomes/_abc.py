@@ -16,6 +16,7 @@
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from copy import copy
 from ctypes import c_int32, c_int64
 
 __all__ = [
@@ -24,14 +25,14 @@ __all__ = [
 
 
 class BaseLayer(ABC):
-    __slots__ = ('child_layer', 'world_seed', 'chunk_seed', 'layer_seed', '_debug')
+    __slots__ = ('child_layer', 'world_seed', 'layer_seed', 'chunk_seed', '_debug')
 
-    def __init__(self, layer_seed, child=None, debug=None):
-        self._debug = debug
+    def __init__(self, layer_seed, child=None, _debug=None):
+        self._debug = _debug
         self.child_layer = child
         self.world_seed = c_int64(0)
-        self.chunk_seed = c_int64(0)
         self.layer_seed = c_int64(layer_seed)
+        self.chunk_seed = c_int64(0)
 
         self.layer_seed.value *= self.layer_seed.value * 6364136223846793005 + 1442695040888963407
         self.layer_seed.value += layer_seed
@@ -45,8 +46,8 @@ class BaseLayer(ABC):
     def __repr__(self):
         values = (
             ('world seed', self.world_seed.value),
-            ('chunk seed', self.chunk_seed.value),
             ('layer seed', self.layer_seed.value),
+            ('chunk seed', self.chunk_seed.value),
             ('child', self.child_layer),
         )
 
@@ -54,6 +55,32 @@ class BaseLayer(ABC):
             self.__class__.__name__,
             ', '.join('%s=%s' % value for value in values),
         )
+
+    def __getstate__(self):
+        return (
+            '1.6.4',
+            self.world_seed.value,
+            self.layer_seed.value,
+            self.chunk_seed.value,
+            self.child_layer,
+        )
+
+    def __setstate__(self, state):
+        version = state[0]  # @UnusedVariable
+        self.world_seed = c_int64(state[1])
+        self.layer_seed = c_int64(state[2])
+        self.chunk_seed = c_int64(state[3])
+        self.child_layer = state[4]
+        self._debug = None
+
+    def __copy__(self):
+        obj = self.__new__(type(self))
+        obj.world_seed = c_int64(self.world_seed.value)
+        obj.layer_seed = c_int64(self.layer_seed.value)
+        obj.chunk_seed = c_int64(self.chunk_seed.value)
+        obj.child_layer = copy(self.child_layer)
+        obj._debug = None
+        return obj
 
     def init_world_seed(self, world_seed):
         self.world_seed.value = world_seed

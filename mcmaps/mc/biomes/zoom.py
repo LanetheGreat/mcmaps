@@ -106,11 +106,11 @@ class FuzzyZoomLayer(_BaseZoomLayer):
 class ZoomLayer(_BaseZoomLayer):
 
     @classmethod
-    def zoom(cls, layer_seed, child, zoom_count, debug=None):
+    def zoom(cls, layer_seed, child, zoom_count, _debug=None):
         layer = child
 
         for zoom in range(zoom_count):
-            layer = cls(layer_seed + zoom, layer, debug=debug)
+            layer = cls(layer_seed + zoom, layer, _debug=_debug)
 
         return layer
 

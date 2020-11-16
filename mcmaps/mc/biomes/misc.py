@@ -14,6 +14,9 @@
 
 ''' Miscellaneous other layers used in biome generation. '''
 
+from copy import copy
+from ctypes import c_int64
+
 from ._abc import BaseLayer
 from mcmaps.mc.constants import BIOME_ID, WORLD_TYPE
 
@@ -54,8 +57,8 @@ class AddSnowLayer(BaseLayer):
 class BiomeInitLayer(BaseLayer):
     __slots__ = ('allowed_biomes',)
 
-    def __init__(self, layer_seed, child=None, world_type=WORLD_TYPE.DEFAULT, debug=None):
-        BaseLayer.__init__(self, layer_seed, child=child, debug=debug)
+    def __init__(self, layer_seed, child=None, world_type=WORLD_TYPE.DEFAULT, _debug=None):
+        BaseLayer.__init__(self, layer_seed, child=child, _debug=_debug)
         if world_type == WORLD_TYPE.DEFAULT_1_1:
             self.allowed_biomes = (
                 BIOME_ID.DESERT,
@@ -90,6 +93,30 @@ class BiomeInitLayer(BaseLayer):
             self.__class__.__name__,
             ', '.join('%s=%s' % value for value in values),
         )
+
+    def __getstate__(self):
+        return (
+            '1.6.4',
+            self.world_seed.value,
+            self.layer_seed.value,
+            self.chunk_seed.value,
+            self.allowed_biomes,
+            self.child_layer,
+        )
+
+    def __setstate__(self, state):
+        version = state[0]  # @UnusedVariable
+        self.world_seed = c_int64(state[1])
+        self.layer_seed = c_int64(state[2])
+        self.chunk_seed = c_int64(state[3])
+        self.allowed_biomes = state[4]
+        self.child_layer = state[5]
+        self._debug = None
+
+    def __copy__(self):
+        obj = BaseLayer.__copy__(self)
+        obj.allowed_biomes = copy(self.allowed_biomes)
+        return obj
 
     def get_area(self, x_pos, z_pos, x_width, z_depth):
         biome_values = [[BIOME_ID.OCEAN] * z_depth for _ in range(x_width)]

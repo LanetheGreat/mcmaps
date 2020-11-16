@@ -14,6 +14,9 @@
 
 ''' River layer generation. '''
 
+from copy import copy
+from ctypes import c_int64
+
 from ._abc import BaseLayer
 from mcmaps.mc.constants import BIOME_ID
 
@@ -121,8 +124,8 @@ class SwampRiverLayer(BaseLayer):
 class RiverMixerLayer(BaseLayer):
     __slots__ = ('child_river_layer', )
 
-    def __init__(self, layer_seed, child=None, child_river=None, debug=None):
-        BaseLayer.__init__(self, layer_seed, child=child, debug=debug)
+    def __init__(self, layer_seed, child=None, child_river=None, _debug=None):
+        BaseLayer.__init__(self, layer_seed, child=child, _debug=_debug)
         self.child_river_layer = child_river
 
     def __repr__(self):
@@ -138,6 +141,30 @@ class RiverMixerLayer(BaseLayer):
             self.__class__.__name__,
             ', '.join('%s=%s' % value for value in values),
         )
+
+    def __getstate__(self):
+        return (
+            '1.6.4',
+            self.world_seed.value,
+            self.layer_seed.value,
+            self.chunk_seed.value,
+            self.child_layer,
+            self.child_river_layer,
+        )
+
+    def __setstate__(self, state):
+        version = state[0]  # @UnusedVariable
+        self.world_seed = c_int64(state[1])
+        self.layer_seed = c_int64(state[2])
+        self.chunk_seed = c_int64(state[3])
+        self.child_layer = state[4]
+        self.child_river_layer = state[5]
+        self._debug = None
+
+    def __copy__(self):
+        obj = BaseLayer.__copy__(self)
+        obj.child_river_layer = copy(self.child_river_layer)
+        return obj
 
     def init_world_seed(self, world_seed):
         self.world_seed.value = world_seed
