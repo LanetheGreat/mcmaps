@@ -12,15 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-''' Command line processor for MC Maps. '''
+''' Sub commands supported by the MC Maps library. '''
 
-from mcmaps.commands import parser
+from argparse import ArgumentParser
 
-args = parser.parse_args()
-if hasattr(args, 'command_func'):
-    try:
-        args.command_func(args)
-    except NotImplementedError:
-        print('Command not implemented, yet.')
-else:
-    parser.print_help()
+__all__ = ['parser', 'subparsers']
+
+# Top level command line argument parser
+parser = ArgumentParser(
+    prog='python -m mcmaps',
+    description='MC Maps library command line.',
+)
+subparsers = parser.add_subparsers(help='sub-command help')
+
+from . import maps  # @IgnorePep8 @UnresolvedImport
+from . import webserver  # @IgnorePep8 @UnresolvedImport

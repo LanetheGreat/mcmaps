@@ -23,7 +23,7 @@
     "build-lib": "cross-env NODE_ENV=production webpack --config webpack.lib.js",
     "build-app-dev": "cross-env NODE_ENV=development webpack --config webpack.app.js",
     "build-lib-dev": "cross-env NODE_ENV=development webpack --config webpack.lib.js",
-    "start-cherrypy-server": "python -m pipenv run python -m mcmaps",
+    "start-cherrypy-server": "python -m pipenv run python -m mcmaps webserver",
     "start-webpack-server": "cross-env NODE_ENV=development webpack-dev-server --config webpack.dev.js --open",
     "start-dev-servers": "run-p start-cherrypy-server start-webpack-server",
     "test": "echo \"Not Implemented yet.\" && exit 1"
