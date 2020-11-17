@@ -19,32 +19,58 @@ __all__ = ['generate_image']
 from pathlib import Path
 
 from . import subparsers  # @UnresolvedImport
-from mcmaps.mc.constants import WORLD_TYPE
+from mcmaps.mc.constants import BIOME_ID, Color, WORLD_TYPE
 from PIL import Image
 
 worker_generator = None
+draw_boundaries = False
+bound_alpha = 255
 
 
-def image_worker_init(generator):
+def _clamp(value):
+    return max(0, min(value, 255))
+
+
+def _blend_colors(c1, c2, a):
+    return Color(
+        int(c1.r + (c2.r - c1.r) * a),
+        int(c1.g + (c2.g - c1.g) * a),
+        int(c1.b + (c2.b - c1.b) * a),
+    )
+
+
+def image_worker_init(generator, draw_bounds, alpha):
     global worker_generator
+    global draw_boundaries
+    global bound_alpha
     worker_generator = generator
+    draw_boundaries = draw_bounds
+    bound_alpha = alpha / 255.0
 
 
-def image_worker(x, z, w, d):
+def image_worker(x, z):
     global worker_generator
+    global draw_boundaries
+    global bound_alpha
     chunk_range = range(16)
 
     # Generate the biome data.
     area = worker_generator.get_area(x, z, 16, 16)
 
     # Create a single unified list of biome values per chunk.
-    biomes = []
+    colors = []
     for az in chunk_range:
         for ax in chunk_range:
-            biomes.append(area[ax][az])
+            color = area[ax][az].color
+            if draw_boundaries:
+                if (not ax and not x) or (not az and not z):
+                    color = _blend_colors(color, Color(255, 0, 0), bound_alpha)
+                elif not ax or not az:
+                    color = _blend_colors(color, BIOME_ID.NONE.color, bound_alpha)  # @UndefinedVariable
+            colors.append(color)
 
     # Create a chunk image from the biome color values and return it.
-    return x, z, b''.join(map(bytes, (biome.color for biome in biomes)))
+    return x, z, b''.join(map(bytes, colors))
 
 
 def generate_image(args):
@@ -90,14 +116,14 @@ def generate_image(args):
 
     image_pool = Pool(
         initializer=image_worker_init,
-        initargs=(layers_generator, ),
+        initargs=(layers_generator, args.bounds, args.alpha),
     )
     work_args = []
 
     # Preload all of our worker arguments.
     for z in z_range:
         for x in x_range:
-            work_args.append((x, z, 16, 16))
+            work_args.append((x, z))
 
     try:
         # Process the results from each worker process into an image.
@@ -130,6 +156,8 @@ def _get_world_type(world_type):
 server_cmd = subparsers.add_parser('maps', help='map generation commands')
 server_cmd.add_argument('-s', '--seed', required=True)
 server_cmd.add_argument('-i', '--index', action='store_true')
+server_cmd.add_argument('-b', '--bounds', action='store_true')
+server_cmd.add_argument('-a', '--alpha', type=int, default=255)
 server_cmd.add_argument('-t', '--type', type=_get_world_type, default=WORLD_TYPE.DEFAULT, choices=WORLD_TYPE.__members__)  # @UndefinedVariable
 server_cmd.add_argument('-x', type=int, default=-192)
 server_cmd.add_argument('-z', type=int, default=-192)
