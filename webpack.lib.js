@@ -36,10 +36,12 @@ module.exports = {
             },
             {
                 test: require.resolve('jquery'),
-                use: [{
-                    loader: 'expose-loader',
-                    options: '$',
-                }],
+                loader: 'expose-loader',
+                options: {exposes: ['$', 'jQuery']},
+            },
+            {
+                test: require.resolve('jquery.ajaxq'),
+                use: 'imports-loader?wrapper=window',
             },
         ],
     },
@@ -59,11 +61,6 @@ module.exports = {
             openAnalyzer: false,
         }),
     ],
-    resolve: {
-        alias: {
-            jquery: path.resolve(__dirname, 'node_modules', 'jquery', 'dist', 'jquery.min.js'),
-        },
-    },
 };
 
 if (isDev)

@@ -16,7 +16,7 @@
 
 __all__ = ['webserver_run']
 
-import cherrypy
+import cherrypy, mcmaps
 from cherrypy.lib.static import serve_file
 from pathlib import Path
 
@@ -24,7 +24,7 @@ from . import subparsers  # @UnresolvedImport
 
 
 class Root:
-    path = Path(__file__).parent.parent
+    path = Path(mcmaps.__file__).parent.parent
 
     @cherrypy.expose
     def index(self):
@@ -36,7 +36,9 @@ def webserver_run(args):
     from webbrowser import open_new_tab
 
     for app in apps:
-        cherrypy.tree.graft(app, '/api/' + app.__module__.split('.')[-1])
+        app_name = app.__module__.split('.')[-1]
+        app_path = '/api/' + app_name
+        cherrypy.tree.graft(app, app_path)
 
     host = args.host or '127.0.0.1'
     port = args.port or 3001
@@ -53,9 +55,9 @@ def webserver_run(args):
     })
 
     cherrypy.quickstart(Root(), '/', {
-        '/assets/dist': {
+        '/cache': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': str(Root.path / 'assets' / 'dist'),
+            'tools.staticdir.dir': str(Root.path / 'world_cache'),
         },
     })
 

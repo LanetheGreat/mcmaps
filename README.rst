@@ -26,5 +26,6 @@ Installation
 Development
 -----------
 
-* Use the command ``npm run start-dev-servers`` to start both of the cherrypy WSGI and Webpack developmental servers, the webpage should automatically open your browser to http://localhost:3000/ to view the local development instance of the site.
+* Use the command ``npm run start-dev-servers`` to start both of the cherrypy WSGI and Webpack developmental servers, then open your browser to http://localhost:3000/ to view the local development instance of the site.
 * Refresh the page after making any Python or JavaScript code changes to preview them.
+* Stop the servers using Ctrl-C once or twice. (Restarts are required for the Webpack server when changes are made to package.json)
