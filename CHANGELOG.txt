@@ -1,3 +1,12 @@
+Version 0.1.0
+-------------
+
+- Rewrote python command line support with new "maps" and "webserver" commands.
+- Full biome generation support for Minecraft v1.6.4.
+- Can now generate map images via new "python -m mcmaps maps image" command.
+- Prototyped JavaScript library's "biome map" support inside the app directly for now.
+- Several bug fixes.
+
 Version 0.0.0
 -------------
 
