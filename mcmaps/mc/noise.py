@@ -16,8 +16,8 @@
 
 __all__ = [
     'BaseNoiseGenerator',
-    'NoiseGeneratorPerlin',
-    'NoiseGeneratorOctaves',
+    'ImprovedNoiseGenerator',
+    'SimplexNoiseGenerator',
 ]
 
 from math import floor
@@ -28,20 +28,20 @@ class BaseNoiseGenerator:
     pass
 
 
-class NoiseGeneratorPerlin(BaseNoiseGenerator):
+class ImprovedNoiseGenerator(BaseNoiseGenerator):
 
     __slots__ = (
         'permutations',
-        'xCoord', 'yCoord', 'zCoord',
+        'x', 'y', 'z',
     )
 
     def __init__(self, random=None):
         if random is None:
             random = Random()
 
-        self.xCoord = random.nextDouble() * 256.0
-        self.yCoord = random.nextDouble() * 256.0
-        self.zCoord = random.nextDouble() * 256.0
+        self.x = random.nextDouble() * 256.0
+        self.y = random.nextDouble() * 256.0
+        self.z = random.nextDouble() * 256.0
         self.permutations = list(range(512))
 
         for index in range(256):
@@ -72,16 +72,16 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
     def fade(t):
         return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 
-    def populateNoiseArray(self, xOffset, yOffset, zOffset, xSize, ySize, zSize, xScale, yScale, zScale, noiseScale, noiseArray=None):
-        if noiseArray is None:
-            noiseArray = [0.0] * (xSize * ySize * zSize)
+    def generate_noise(self, xOffset, yOffset, zOffset, xSize, ySize, zSize, xScale, yScale, zScale, noise_scale, noise=None):
+        if noise is None:
+            noise = [0.0] * (xSize * ySize * zSize)
 
-        noiseArrayIndex = 0
-        scaleInverse = 1.0 / noiseScale
+        noise_index = 0
+        scale_inverse = 1.0 / noise_scale
 
         if ySize == 1:
             for x in range(xSize):
-                xPos = xOffset + x * xScale + self.xCoord
+                xPos = xOffset + x * xScale + self.x
                 xPosInt = int(xPos)
 
                 if xPos < xPosInt:
@@ -92,7 +92,7 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
                 xWeight = self.fade(xPos)
 
                 for z in range(zSize):
-                    zPos = zOffset + z * zScale + self.zCoord
+                    zPos = zOffset + z * zScale + self.z
                     zPosInt = int(zPos)
 
                     if zPos < zPosInt:
@@ -106,8 +106,8 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
                     hashIndex2 = self.permutations[self.permutations[xIndex + 1]] + zIndex
                     srcLerp = self.lerp(xWeight, self.grad2D(self.permutations[hashIndex1], xPos, zPos), self.grad3D(self.permutations[hashIndex2], xPos - 1.0, 0.0, zPos))
                     dstLerp = self.lerp(xWeight, self.grad3D(self.permutations[hashIndex1 + 1], xPos, 0.0, zPos - 1.0), self.grad3D(self.permutations[hashIndex2 + 1], xPos - 1.0, 0.0, zPos - 1.0))
-                    noiseArray[noiseArrayIndex] += self.lerp(zWeight, srcLerp, dstLerp) * scaleInverse
-                    noiseArrayIndex += 1
+                    noise[noise_index] += self.lerp(zWeight, srcLerp, dstLerp) * scale_inverse
+                    noise_index += 1
         else:
             prevYIndex = -1
             frontTR2TL = 0.0
@@ -116,7 +116,7 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
             backBR2BL = 0.0
 
             for x in range(xSize):
-                xPos = xOffset + x * xScale + self.xCoord
+                xPos = xOffset + x * xScale + self.x
                 xPosInt = int(xPos)
 
                 if (xPos < xPosInt):
@@ -127,7 +127,7 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
                 xWeight = self.fade(xPos)
 
                 for z in range(zSize):
-                    zPos = zOffset + z * zScale + self.zCoord
+                    zPos = zOffset + z * zScale + self.z
                     zPosInt = int(zPos)
 
                     if (zPos < zPosInt):
@@ -138,7 +138,7 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
                     zWeight = self.fade(zPos)
 
                     for y in range(ySize):
-                        yPos = yOffset + y * yScale + self.yCoord
+                        yPos = yOffset + y * yScale + self.y
                         yPosInt = int(yPos)
 
                         if (yPos < yPosInt):
@@ -161,50 +161,50 @@ class NoiseGeneratorPerlin(BaseNoiseGenerator):
                             backTR2TL = self.lerp(xWeight, self.grad(self.permutations[trHashIndex + 1], xPos, yPos, zPos - 1.0), self.grad(self.permutations[tlHashIndex + 1], xPos - 1.0, yPos, zPos - 1.0))
                             backBR2BL = self.lerp(xWeight, self.grad(self.permutations[brHashIndex + 1], xPos, yPos - 1.0, zPos - 1.0), self.grad(self.permutations[blHashIndex + 1], xPos - 1.0, yPos - 1.0, zPos - 1.0))
 
-                        noiseLerp = self.lerp(zWeight, self.lerp(yWeight, frontTR2TL, frontBR2BL), self.lerp(yWeight, backTR2TL, backBR2BL))
-                        noiseArray[noiseArrayIndex] += noiseLerp * scaleInverse
-                        noiseArrayIndex += 1
-        return noiseArray
+                        noise_lerp = self.lerp(zWeight, self.lerp(yWeight, frontTR2TL, frontBR2BL), self.lerp(yWeight, backTR2TL, backBR2BL))
+                        noise[noise_index] += noise_lerp * scale_inverse
+                        noise_index += 1
+        return noise
 
 
-class NoiseGeneratorOctaves(BaseNoiseGenerator):
+class SimplexNoiseGenerator(BaseNoiseGenerator):
 
-    __slots__ = ('octaves', 'generatorCollection')
+    __slots__ = ('level_count', 'noise_levels')
 
-    def __init__(self, random, octaves):
-        self.octaves = octaves
-        self.generatorCollection = [
-            NoiseGeneratorPerlin(random) for _ in range(octaves)
+    def __init__(self, random, level_count):
+        self.level_count = level_count
+        self.noise_levels = [
+            ImprovedNoiseGenerator(random) for _ in range(level_count)
         ]
 
-    def generateNoiseOctaves(self, xOffset, yOffset, zOffset, xSize, ySize, zSize, xScale, yScale, zScale, noiseArray=None):
-        if noiseArray is None:
-            noiseArray = [0.0] * (xSize * ySize * zSize)
+    def generate_noise_levels(self, xOffset, yOffset, zOffset, xSize, ySize, zSize, xScale, yScale, zScale, noise=None):
+        if noise is None:
+            noise = [0.0] * (xSize * ySize * zSize)
 
-        noiseScale = 1.0
+        noise_scale = 1.0
 
-        for octave in self.octaves:
-            octaveXOffset = xOffset * noiseScale * xScale
-            octaveYOffset = yOffset * noiseScale * yScale
-            octaveZOffset = zOffset * noiseScale * zScale
+        for level in self.noise_levels:
+            levelXOffset = xOffset * noise_scale * xScale
+            levelYOffset = yOffset * noise_scale * yScale
+            levelZOffset = zOffset * noise_scale * zScale
 
-            xInt = floor(octaveXOffset)
-            zInt = floor(octaveZOffset)
+            xInt = floor(levelXOffset)
+            zInt = floor(levelZOffset)
 
-            octaveXOffset = octaveXOffset - xInt + (xInt % 16777216)
-            octaveZOffset = octaveZOffset - zInt + (zInt % 16777216)
+            levelXOffset = levelXOffset - xInt + (xInt % 16777216)
+            levelZOffset = levelZOffset - zInt + (zInt % 16777216)
 
-            octave.populateNoiseArray(
-                octaveXOffset, octaveYOffset, octaveZOffset,
+            level.generate_noise(
+                levelXOffset, levelYOffset, levelZOffset,
                 xSize, ySize, zSize,
-                xScale * noiseScale, yScale * noiseScale, zScale * noiseScale,
-                noiseScale,
-                noiseArray,
+                xScale * noise_scale, yScale * noise_scale, zScale * noise_scale,
+                noise_scale,
+                noise,
             )
 
-            noiseScale /= 2.0
+            noise_scale /= 2.0
 
-        return noiseArray
+        return noise
 
-    def generateNoiseOctavesXZ(self, xOffset, zOffset, xSize, zSize, xScale, zScale, noiseArray=None):
-        return self.generateNoiseOctaves(xOffset, 10, zOffset, xSize, 1, zSize, xScale, 1.0, zScale, noiseArray)
+    def generate_noise_levels_XZ(self, xOffset, zOffset, xSize, zSize, xScale, zScale, noise=None):
+        return self.generateNoiseOctaves(xOffset, 10, zOffset, xSize, 1, zSize, xScale, 1.0, zScale, noise)

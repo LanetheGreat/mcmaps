@@ -16,10 +16,13 @@
 
 __all__ = ['apps']
 
-from . import env, layers, seed
+from . import (
+    env, biomes, layers, seed,
+)
 
 apps = [
     env.application,
+    biomes.application,
     layers.application,
     seed.application,
 ]

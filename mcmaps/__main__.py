@@ -12,28 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-''' Starts a CherryPy server to aid in local development and testing '''
+''' Command line processor for MC Maps. '''
 
-import cherrypy
-from cherrypy.lib.static import serve_file
-from mcmaps.wsgi import apps
-from pathlib import Path
+from mcmaps.commands import parser
 
-
-class Root:
-    path = Path(__file__).parent.parent
-
-    @cherrypy.expose
-    def index(self):
-        return serve_file(str(self.path / 'index.html'))
-
-
-for app in apps:
-    cherrypy.tree.graft(app, '/api/' + app.__module__.split('.')[-1])
-
-cherrypy.quickstart(Root(), '/', {
-    '/assets/dist': {
-        'tools.staticdir.on': True,
-        'tools.staticdir.dir': str(Root.path / 'assets' / 'dist'),
-    }
-})
+args = parser.parse_args()
+if hasattr(args, 'command_func'):
+    try:
+        args.command_func(args)
+    except NotImplementedError:
+        print('Command not implemented, yet.')
+else:
+    parser.print_help()

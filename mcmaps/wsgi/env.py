@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+import os
 import sys
 
 __all__ = ('application',)
@@ -20,6 +21,7 @@ __all__ = ('application',)
 
 def application(env, start_response):
     env['python.version'] = tuple(sys.version_info)
+    env['python.cwd'] = os.getcwd()
     response_header = [('Content-Type', 'application/json')]
     start_response('200 OK', response_header)
     yield json.dumps({

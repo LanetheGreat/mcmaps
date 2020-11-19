@@ -24,9 +24,10 @@ module.exports = {
         contentBase: path.resolve(__dirname, 'assets', 'dist'),
         serveIndex: false,
         port: 3000,
-        proxy: {
-            '/api': 'http://localhost:8080',
-        },
+        proxy: [{
+            context: ['/api', '/cache'],
+            target:'http://localhost:3001',
+        }],
         publicPath: '/',
     },
     devtool: isDev ? 'inline-source-map' : 'source-map',
@@ -69,13 +70,15 @@ module.exports = {
             },
             {
                 test: require.resolve('jquery'),
-                use: [{
-                    loader: 'expose-loader',
-                    options: '$',
-                }],
+                loader: 'expose-loader',
+                options: {exposes: ['$', 'jQuery']},
             },
             {
-                test: /\.s[ac]ss$/i,
+                test: require.resolve('jquery.ajaxq'),
+                use: 'imports-loader?wrapper=window',
+            },
+            {
+                test: /\.(s[ac]|c)ss$/i,
                 loader: [
                     isDev ? 'style-loader' : MiniCssExtractPlugin.loader,
                     'css-loader',
@@ -96,6 +99,7 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             filename: 'index.html',
+            inject: false,
             hash: true,
             template: 'index.dev.html',
             title: 'MC Maps Dev Server',
@@ -115,10 +119,5 @@ module.exports = {
             filename: 'mcmaps-theme.css',
         }),
     ],
-    resolve: {
-        alias: {
-            jquery: path.resolve(__dirname, 'node_modules', 'jquery', 'dist', 'jquery.min.js'),
-        },
-    },
     ...devOptions,
 };

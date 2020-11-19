@@ -23,9 +23,9 @@
     "build-lib": "cross-env NODE_ENV=production webpack --config webpack.lib.js",
     "build-app-dev": "cross-env NODE_ENV=development webpack --config webpack.app.js",
     "build-lib-dev": "cross-env NODE_ENV=development webpack --config webpack.lib.js",
-    "start-cherrypy-server": "python -m pipenv run python -m mcmaps",
-    "start-webpack-server": "cross-env NODE_ENV=development webpack-dev-server --config webpack.dev.js --open",
-    "start-dev-servers": "run-p start-cherrypy-server start-webpack-server",
+    "start-cherrypy-server": "cross-env PYTHONPATH=. pipenv run python -m mcmaps webserver",
+    "start-webpack-server": "cross-env NODE_ENV=development webpack-dev-server --config webpack.dev.js",
+    "start-dev-servers": "run-p start-webpack-server start-cherrypy-server",
     "test": "echo \"Not Implemented yet.\" && exit 1"
   },
   "dependencies": {
@@ -35,11 +35,14 @@
     "babel-loader": "^8.1.0",
     "babel-plugin-lodash": "^3.3.4",
     "core-js": "^3.6.5",
-    "css-loader": "^4.2.2",
     "cross-env": "^7.0.2",
+    "css-loader": "^4.2.2",
     "expose-loader": "^1.0.0",
     "html-webpack-plugin": "^4.4.1",
+    "imports-loader": "^1.2.0",
     "jquery": "^3.5.1",
+    "jquery-ui": "^1.12.1",
+    "jquery.ajaxq": "^0.5.2",
     "lodash": "^4.17.20",
     "lodash-webpack-plugin": "^0.11.5",
     "mini-css-extract-plugin": "^0.10.0",
@@ -57,7 +60,6 @@
     "eslint-config-airbnb": "^18.2.0",
     "eslint-plugin-import": "^2.22.0",
     "html-loader": "^1.3.0",
-    "imports-loader": "^1.1.0",
     "npm-run-all": "^4.1.5",
     "webpack-dev-server": "^3.11.0"
   }
