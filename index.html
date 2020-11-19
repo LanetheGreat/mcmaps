@@ -7,22 +7,33 @@
     </head>
     <body>
         <div class="project-form shadow-box">
-            <h2>Map Settings:</h2>
-            <label for="seed">Seed:</label>
-            <input id="seed" name="seed" type="text"/>
-            <input id="numSeed" name="numSeed" type="hidden"/>
-            <select id="wtype" name="wtype">
-                <option value="default" selected>DEFAULT</option>
-                <option value="flat" selected>FLAT</option>
-                <option value="large_biome" selected>LARGE BIOME</option>
-                <option value="default_1_1" selected>DEFAULT 1.1</option>
-            </select>
-            <select id="version" name="version">
-                <option value="1.6.4">Latest Known (1.6.4 Release)</option>
-            </select>
+            <div class="input-section">
+	            <h2>Map Settings:</h2>
+	            <label for="seed">Seed:</label>
+	            <input id="seed" name="seed" type="text"/>
+	            <input id="numSeed" name="numSeed" type="hidden"/>
+                <button class="abort">X</button>
+            </div>
+            <div class="input-section">
+                <label for="wtype">World Type:</label>
+                <select id="wtype" name="wtype">
+                    <option value="default" selected>DEFAULT</option>
+                    <option value="flat">FLAT</option>
+                    <option value="large_biome">LARGE BIOME</option>
+                    <option value="default_1_1">DEFAULT 1.1</option>
+                </select>
+            </div>
+            <div class="input-section">
+                <label for="version">Version:</label>
+                <select id="version" name="version">
+                    <option value="1.6.4" selected>Latest Known (1.6.4 Release)</option>
+                </select>
+            </div>
         </div>
-        <div class="modal shadow-box">No project seed specified.</div>
-        <div id="mc_map"></div>
+        <div id="msgBox" class="modal shadow-box">No project seed specified.</div>
+        <div id="mc_map">
+            <div class="chunk-container"></div>
+        </div>
         <div class="footer shadow-box">
             <p>MC Maps v0.0.0 | &copy; 2020 - Lane Shaw</p>
         </div>

@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-''' API endpoints implemented as individual WSGI scripts '''
+''' Functions for handling chunk related information. '''
 
-__all__ = ['apps']
+__all__ = ['hashChunkXZ']
 
-from . import (
-    env, biomes, layers, seed,
-)
 
-apps = [
-    env.application,
-    biomes.application,
-    layers.application,
-    seed.application,
-]
+def hashChunkXZ(chunkX, chunkZ):
+    return chunkX & 4294967295 | (chunkZ & 4294967295) << 32
