@@ -17,6 +17,7 @@
 from http import HTTPStatus
 from urllib.parse import parse_qs
 
+from mcmaps.mc.constants import WORLD_TYPE
 from mcmaps.util.misc import SLONG_RANGE
 
 __all__ = [
