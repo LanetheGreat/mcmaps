@@ -14,40 +14,37 @@
 
 ''' Generates the individual layers of a chunk based on MC version '''
 
-import os
+import json, os
 from http import HTTPStatus
-from traceback import format_exc
-from urllib.parse import parse_qs
-from mcmaps.util.common import (
-    HTTPServerException,
+
+from mcmaps.util.common import ensure_world_paths
+from mcmaps.util.wsgi import (
+    jsonify_exception,
     verify_default_parameters,
-    ensure_world_folder,
 )
-from mcmaps.util.wsgi import finalize_response
 
 __all__ = ('application',)
 
 
+@jsonify_exception
 def application(env, start_response):
-    response_code = None
+    response_code = HTTPStatus.OK
     response_headers = {}
     body = {}
-    query = parse_qs(env['QUERY_STRING'])
+    doc_root = env.get('CONTEXT_DOCUMENT_ROOT', os.getcwd())
 
-    try:
-        seed, version, x, z = verify_default_parameters(query)
-        ensure_world_folder(os.path.join(env['CONTEXT_DOCUMENT_ROOT'], 'world_cache', seed))
+    seed, version, world_type, x, z = verify_default_parameters(env['QUERY_STRING'])
+    world_type_name = world_type.name.casefold()
+    world_path = os.path.join(
+        doc_root, 'world_cache',
+        version, world_type_name, str(seed),
+    )
+    ensure_world_paths(world_path)
 
-    except Exception as err:
-        if isinstance(err, HTTPServerException):
-            response_code = err.code
-        response_code = response_code or HTTPStatus.INTERNAL_SERVER_ERROR
-        body['error'] = response_code.value
-        body['message'] = str(err)
-        if query.get('debug'):
-            body['traceback'] = format_exc()
-        yield from finalize_response(response_code, response_headers, start_response, body, query.get('debug'))
-    else:
-        response_code = HTTPStatus.OK
-
-    yield from finalize_response(response_code, response_headers, start_response, body, query.get('debug'))
+    body = json.dumps(body)
+    response_headers['Content-Type'] = 'application/json'
+    start_response(
+        '%s %s' % (response_code.value, response_code.phrase),
+        list(response_headers.items()),
+    )
+    yield body
