@@ -19,7 +19,7 @@ from enum import IntEnum
 
 from .blocks import BLOCK_ID
 
-__all__ = ['BIOME_ID', 'WORLD_TYPE']
+__all__ = ['BIOME_ID', 'WORLD_TYPE', 'Color']
 
 
 Color = namedtuple('Color', ('r', 'g', 'b'))
