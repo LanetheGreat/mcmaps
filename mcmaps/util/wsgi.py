@@ -69,7 +69,7 @@ def verify_default_parameters(query):
     try:
         z = int(query['z'][0])
     except ValueError:
-        raise BadRequest('Invalid chunk y integer coordinate specified: ' + query['z'][0]) from None
+        raise BadRequest('Invalid chunk z integer coordinate specified: ' + query['z'][0]) from None
 
     return seed, version, world_type, x, z
 

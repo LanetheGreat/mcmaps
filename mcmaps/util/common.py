@@ -25,7 +25,7 @@ def _ensure_dim_folders(world_path, dim):
     # Create the blocks, layers, and biomes maps folders
     makedirs(join(world_path, dim, 'blocks'), exist_ok=True)
     makedirs(join(world_path, dim, 'layers'), exist_ok=True)
-    makedirs(join(world_path, dim, 'biomes', 'img'), exist_ok=True)
+    makedirs(join(world_path, dim, 'biomes'), exist_ok=True)
 
 
 def ensure_world_paths(path):

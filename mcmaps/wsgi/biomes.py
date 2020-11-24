@@ -16,16 +16,17 @@
 
 import json, os, pickle
 from http import HTTPStatus
-from PIL import Image
+from urllib.parse import parse_qs
 
 from mcmaps.mc.chunks import hashChunkXZ
+from mcmaps.mc.constants import WORLD_TYPE
 from mcmaps.util.common import ensure_world_paths
-from mcmaps.util.wsgi import (
-    jsonify_exception,
-    verify_default_parameters,
-)
+from mcmaps.util.misc import SLONG_RANGE
+from mcmaps.util.wsgi import jsonify_exception, BadRequest
 
 __all__ = ('application',)
+
+chunk_range = range(16)
 
 
 def _ensure_generator(dim_folder, seed, world_type):
@@ -44,16 +45,73 @@ def _ensure_generator(dim_folder, seed, world_type):
     return biome_generator
 
 
+def _process_parameters(qs):
+    query = parse_qs(qs)
+
+    if not query.get('seed'):
+        raise BadRequest('No Minecraft seed specified. Missing parameter "seed"')
+    else:
+        try:
+            seed = int(query['seed'][0])
+            if seed not in SLONG_RANGE:
+                raise ValueError
+        except ValueError:
+            raise BadRequest('Invalid numeric Minecraft seed specified: ' + query['seed'][0]) from None
+
+    if not query.get('version'):
+        raise BadRequest('No Minecraft version specified. Missing parameter "version"')
+    version = query['version'][0]
+
+    world_type = str(query.get('wtype', ['DEFAULT'])[0]).upper()
+    if world_type not in WORLD_TYPE.__members__:  # @UndefinedVariable
+        raise BadRequest('Invalid world type specified: ' + query['wtype'][0]) from None
+    world_type = WORLD_TYPE.__members__[world_type]  # @UndefinedVariable
+
+    if not query.get('x'):
+        raise BadRequest('No chunk x coordinate specified. Missing parameter "x"')
+    try:
+        x = int(query['x'][0])
+    except ValueError:
+        raise BadRequest('Invalid chunk x integer coordinate specified: ' + query['x'][0]) from None
+
+    if not query.get('z'):
+        raise BadRequest('No chunk z coordinate specified. Missing parameter "z"')
+    try:
+        z = int(query['z'][0])
+    except ValueError:
+        raise BadRequest('Invalid chunk z integer coordinate specified: ' + query['z'][0]) from None
+
+    try:
+        width = int(query['width'][0])
+        if width <= 0:
+            raise ValueError
+    except (IndexError, KeyError):
+        width = 1
+    except ValueError:
+        raise BadRequest('Invalid width length specified (must be greater than 0): ' + query['width'][0]) from None
+
+    try:
+        depth = int(query['depth'][0])
+        if depth <= 0:
+            raise ValueError
+    except (IndexError, KeyError):
+        depth = 1
+    except ValueError:
+        raise BadRequest('Invalid depth length specified (must be greater than 0): ' + query['depth'][0]) from None
+
+    return seed, version, world_type, x, z, width, depth
+
+
 @jsonify_exception
 def application(env, start_response):
+    global chunk_range
     response_code = HTTPStatus.OK
     response_headers = {}
     body = {}
     doc_root = env.get('CONTEXT_DOCUMENT_ROOT', os.getcwd())
 
-    seed, version, world_type, x, z = verify_default_parameters(env['QUERY_STRING'])
+    seed, version, world_type, chunkX, chunkZ, width, depth = _process_parameters(env['QUERY_STRING'])
     world_type_name = world_type.name.casefold()
-    chunk_hash = str(hashChunkXZ(x, z)).rjust(20, '0')
 
     # World relative folders.
     world_path = os.path.join(
@@ -61,55 +119,54 @@ def application(env, start_response):
         version, world_type_name, str(seed),
     )
     dim_path = os.path.join(world_path, 'DIM0')
-    image_comp = (version, world_type_name, str(seed), 'DIM0', 'biomes', 'img', chunk_hash)
-    chunk_path = os.path.join(dim_path, 'biomes', chunk_hash + '.json')
-    image_path = os.path.join(dim_path, 'biomes', 'img', chunk_hash + '.png')
 
     ensure_world_paths(world_path)
 
-    # Load our existing biome data if it was already generated.
-    if os.path.exists(chunk_path):
-        with open(chunk_path, 'rb') as json_file:
-            body = json_file.read()
+    # Our list of chunks, indexed by their hash.
+    chunk_list = {}
+    x_range = range(chunkX, chunkX + width)
+    z_range = range(chunkZ, chunkZ + depth)
 
-        response_headers['Content-Type'] = 'application/json'
-        start_response(
-            '%s %s' % (response_code.value, response_code.phrase),
-            list(response_headers.items()),
-        )
-        yield body
-        return
+    # Reserve generator variable for lazy loading later.
+    generator = None
 
-    # Load our cached generator, if it was already generated itself.
-    generator = _ensure_generator(dim_path, seed, world_type)
+    # Load our existing biome data or generate it.
+    for z in z_range:
+        for x in x_range:
+            chunk_hash = hashChunkXZ(x, z)
+            hash_string = str(chunk_hash).rjust(20, '0')
+            chunk_path = os.path.join(dim_path, 'biomes', hash_string + '.pickle')
 
-    # Generate the biome data and cache it.
-    r = range(16)
-    area = generator.get_area(x << 4, z << 4, 16, 16)
-    biomes = []
-    for az in r:
-        for ax in r:
-            biomes.append(area[ax][az])
+            if os.path.exists(chunk_path):
+                with open(chunk_path, 'rb') as pickle_file:
+                    chunk = pickle.load(pickle_file)
+            else:
+                # Lazy load our generator.
+                if not generator:
+                    generator = _ensure_generator(dim_path, seed, world_type)
 
-    # Generate the chunk image and save it.
-    Image.frombytes(
-        mode='RGB',
-        size=(16, 16),
-        data=b''.join(bytes(biome.color) for biome in biomes),
-    ).save(image_path, optimize=True)
+                # Generate the biome data and cache it.
+                area = generator.get_area(x << 4, z << 4, 16, 16)
+                biomes = []
+                for az in chunk_range:
+                    for ax in chunk_range:
+                        biomes.append(area[ax][az])
 
-    # Create our API JSON data and cache it.
-    body = json.dumps({
-        'x': x, 'z': z,
-        'hash': chunk_hash,
-        'biomes': sorted(map(int, set(biomes))),
-        'values': list(map(int, biomes)),
-        'image': '/' + '/'.join(('cache', *image_comp)) + '.png',
-    }).encode('us-ascii')
+                chunk = {
+                    'x': x, 'z': z,
+                    'hash': hash_string,
+                    'biomes': sorted(map(int, set(biomes))),
+                    'values': list(map(int, biomes)),
+                }
 
-    with open(chunk_path, 'wb') as json_file:
-        json_file.write(body)
+                with open(chunk_path, 'wb') as pickle_file:
+                    pickle.dump(chunk, pickle_file)
 
+            # Add our chunk to the list of ones to export.
+            chunk_list[chunk_hash] = chunk
+
+    # Dump our chunk list as JSON.
+    body = json.dumps([chunk for chunk in chunk_list.values()]).encode('us-ascii')
     response_headers['Content-Type'] = 'application/json'
     start_response(
         '%s %s' % (response_code.value, response_code.phrase),
